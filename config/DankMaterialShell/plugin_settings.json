@@ -1,0 +1,26 @@
+{
+  "dankBatteryAlerts": {
+    "enabled": true,
+    "criticalThreshold": 10,
+    "warningThreshold": 20
+  },
+  "powerUsagePlugin": {
+    "enabled": true
+  },
+  "wallpaperDiscovery": {
+    "enabled": true
+  },
+  "niriWindows": {
+    "enabled": true
+  },
+  "dankPomodoroTimer": {
+    "enabled": true,
+    "workDuration": "25`qqqqqq"
+  },
+  "dankSpotify": {
+    "enabled": true
+  },
+  "formatColorPicker": {
+    "enabled": true
+  }
+}

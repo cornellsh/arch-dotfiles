@@ -1,0 +1,19 @@
+# Research notes — local-only working material; not part of the published skill
+research/
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.sublime-workspace
+
+# Python / Node / common build noise (defensive)
+__pycache__/
+*.pyc
+node_modules/
+dist/
+build/

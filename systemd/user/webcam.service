@@ -1,0 +1,16 @@
+[Unit]
+Description=Webcam (hflip /dev/video0 -> /dev/video10)
+
+[Service]
+Type=simple
+# Wait for source and sink devices to appear (module load is async on boot)
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do [ -e /dev/video0 ] && [ -e /dev/video10 ] && exit 0; sleep 1; done; exit 1'
+ExecStart=/usr/bin/ffmpeg -nostdin -hide_banner -loglevel warning \
+  -f v4l2 -input_format mjpeg -video_size 1280x720 -framerate 30 -i /dev/video0 \
+  -vf hflip \
+  -f v4l2 -pix_fmt yuv420p /dev/video10
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

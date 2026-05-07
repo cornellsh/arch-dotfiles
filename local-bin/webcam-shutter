@@ -1,0 +1,18 @@
+#!/bin/sh
+# Toggle webcam (USB) + mirror service together via F10
+
+# Get current USB state (1=on, 0=off)
+CURRENT=$(sudo -n /usr/local/bin/webcam-toggle status 2>/dev/null)
+
+# Toggle: if currently on, turn off. If off or unknown, turn on.
+if [ "$CURRENT" = "1" ]; then
+    # Turn OFF: stop mirror first, then disable USB
+    systemctl --user stop webcam.service 2>/dev/null
+    sudo -n /usr/local/bin/webcam-toggle off 2>/dev/null
+    notify-send -a "Webcam" -i camera-disabled -t 1500 "Webcam OFF" "Mirror stopped & hardware blocked"
+else
+    # Turn ON: enable USB first, then start mirror
+    sudo -n /usr/local/bin/webcam-toggle on 2>/dev/null
+    systemctl --user start webcam.service 2>/dev/null
+    notify-send -a "Webcam" -i camera-web -t 1500 "Webcam ON" "Hardware unblocked & mirror started"
+fi

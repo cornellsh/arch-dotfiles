@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "@opencode-ai/plugin": "1.14.31",
+    "opencode-claude-auth": "1.5.3",
+    "opencode-gemini-auth": "1.4.12",
+    "@tarquinen/opencode-dcp": "3.1.9",
+    "opencode-snip": "1.6.1",
+    "envsitter-guard": "0.0.4",
+    "opencode-agent-skills": "0.6.5",
+    "opencode-handoff": "0.5.0"
+  },
+  "devDependencies": {
+    "jsonc-parser": "3.3.1",
+    "zod": "4.3.5"
+  }
+}
