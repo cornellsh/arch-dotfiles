@@ -423,7 +423,7 @@ binds {
     // === System Controls ===
     Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
     Mod+Shift+P { power-off-monitors; }
-    F10 hotkey-overlay-title="Toggle Webcam" { spawn "webcam-shutter"; }
+    F10 hotkey-overlay-title="Toggle Webcam" { spawn "/home/user/.local/bin/webcam-shutter"; }
 }
 debug {
     honor-xdg-activation-with-invalid-serial
