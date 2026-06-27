@@ -1,0 +1,1 @@
+Stage nothing yourself. Run `git diff --staged` (and `git status`). Based only on what is already staged, write a Conventional Commits message (type(scope): summary, plus a short body explaining why). Then run the commit. If nothing is staged, tell me.

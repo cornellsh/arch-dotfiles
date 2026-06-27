@@ -1,0 +1,1 @@
+Explain the code I reference: what it does, how data flows through it, and any non-obvious decisions or gotchas. Use a short bullet summary first, then detail. Assume I'm a strong engineer new to this codebase.

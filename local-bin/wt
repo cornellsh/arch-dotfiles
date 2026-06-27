@@ -1,0 +1,324 @@
+#!/usr/bin/env bash
+# wt — durable cross-repo git worktree manager for parallel OpenCode sessions.
+#
+# Source of truth is git itself (`git worktree list`) joined with OpenCode's
+# session DB. Nothing is cached in fragile state — every run reconstructs the
+# picture from disk, so it survives reboots cleanly.
+#
+# Worktrees live at:  ~/worktrees/<repo>/<branch>/
+# Repos are scanned under:  ~/work
+#
+# Commands:
+#   wt ls                       dashboard: every worktree across every repo
+#   wt new <repo> <branch> [base]   create worktree+branch, open opencode
+#   wt fan <repo> <base> <n>    fan out N worktrees off one base branch
+#   wt go [<branch>|<repo/branch>]  cd into a worktree and resume its session
+#   wt rm <repo/branch>         remove a worktree (and its branch if merged)
+#   wt clean                    prune stale worktrees across all repos
+#   wt help
+
+set -euo pipefail
+
+WORK_ROOT="${WT_WORK_ROOT:-$HOME/work}"
+WT_HOME="${WT_HOME:-$HOME/worktrees}"
+OC_DB="$HOME/.local/share/opencode/opencode.db"
+
+c_reset=$'\033[0m'; c_dim=$'\033[2m'; c_b=$'\033[1m'
+c_cyan=$'\033[36m'; c_green=$'\033[32m'; c_yellow=$'\033[33m'; c_red=$'\033[31m'; c_mag=$'\033[35m'
+
+die() { printf '%swt: %s%s\n' "$c_red" "$*" "$c_reset" >&2; exit 1; }
+info() { printf '%s%s%s\n' "$c_dim" "$*" "$c_reset"; }
+
+# Resolve a repo name to its main worktree path under WORK_ROOT.
+# Accepts "dska", "upcomers/web", or an absolute path that is a git repo.
+resolve_repo() {
+  local name="$1" p
+  if [ -d "$name/.git" ] || git -C "$name" rev-parse --git-dir >/dev/null 2>&1; then
+    git -C "$name" rev-parse --show-toplevel 2>/dev/null && return 0
+  fi
+  p="$WORK_ROOT/$name"
+  if git -C "$p" rev-parse --show-toplevel >/dev/null 2>&1; then
+    git -C "$p" rev-parse --show-toplevel; return 0
+  fi
+  return 1
+}
+
+# List every git repo main worktree under WORK_ROOT (excludes worktree links).
+list_repos() {
+  # A main worktree has a .git directory; linked worktrees have a .git file.
+  find "$WORK_ROOT" -maxdepth 4 -type d -name .git 2>/dev/null \
+    | sed 's|/\.git$||' | sort -u
+}
+
+# Query opencode session for a directory -> "id\ttitle" (most recent), or empty.
+session_for_dir() {
+  local dir="$1"
+  [ -f "$OC_DB" ] || return 0
+  command -v opencode >/dev/null 2>&1 || return 0
+  opencode session list --format json 2>/dev/null \
+    | python3 -c '
+import sys, json
+d = sys.argv[1]
+try:
+    rows = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+best = None
+for r in rows:
+    if r.get("directory") == d:
+        if best is None or r.get("updated", 0) > best.get("updated", 0):
+            best = r
+if best:
+    print(best["id"] + "\t" + (best.get("title") or "")[:50])
+' "$dir" 2>/dev/null || true
+}
+
+cmd_ls() {
+  printf '%s%-14s %-22s %-10s %-9s %s%s\n' "$c_b" "REPO" "BRANCH" "AGE" "SESSION" "PATH" "$c_reset"
+  local any=0
+  while IFS= read -r repo; do
+    [ -z "$repo" ] && continue
+    local rname; rname="$(basename "$repo")"
+    # git worktree list --porcelain: blocks separated by blank lines
+    git -C "$repo" worktree list --porcelain 2>/dev/null | awk '
+      /^worktree /{wt=substr($0,10)}
+      /^branch /{br=substr($0,8); sub("refs/heads/","",br)}
+      /^detached/{br="(detached)"}
+      /^$/{if(wt){print wt"\t"br; wt="";br=""}}
+      END{if(wt)print wt"\t"br}
+    ' | while IFS=$'\t' read -r wtpath br; do
+      [ -z "$wtpath" ] && continue
+      # skip the main worktree (the repo itself) — only show linked worktrees
+      [ "$wtpath" = "$repo" ] && continue
+      any=1
+      local age sess sid stitle
+      age="$(_age "$wtpath")"
+      sess="$(session_for_dir "$wtpath")"
+      sid="${sess%%$'\t'*}"; stitle="${sess#*$'\t'}"
+      local smark="-"
+      [ -n "$sid" ] && smark="${c_green}●${c_reset}"
+      printf '%s%-14s%s %s%-22s%s %-10s %-9b %s%s%s\n' \
+        "$c_cyan" "$rname" "$c_reset" \
+        "$c_yellow" "${br:-?}" "$c_reset" \
+        "$age" "$smark" \
+        "$c_dim" "$wtpath" "$c_reset"
+    done
+  done < <(list_repos)
+  # The subshell above can't set `any`; recompute for the empty message.
+  if [ -z "$(_all_linked_worktrees)" ]; then
+    info "no worktrees yet. create one:  wt new <repo> <branch>"
+  fi
+}
+
+# All linked (non-main) worktree paths across all repos, one per line.
+_all_linked_worktrees() {
+  while IFS= read -r repo; do
+    [ -z "$repo" ] && continue
+    git -C "$repo" worktree list --porcelain 2>/dev/null | awk -v main="$repo" '
+      /^worktree /{wt=substr($0,10); if(wt!=main) print wt}'
+  done < <(list_repos)
+}
+
+_age() {
+  local p="$1" secs now mod
+  [ -e "$p" ] || { echo "gone"; return; }
+  now=$(date +%s); mod=$(stat -c %Y "$p" 2>/dev/null || echo "$now")
+  secs=$(( now - mod ))
+  if   [ "$secs" -lt 3600 ];  then echo "$(( secs/60 ))m"
+  elif [ "$secs" -lt 86400 ]; then echo "$(( secs/3600 ))h"
+  else echo "$(( secs/86400 ))d"; fi
+}
+
+# Copy gitignored env-ish files from main repo into a fresh worktree.
+_sync_env() {
+  local src="$1" dst="$2" f
+  for f in .env .env.local .env.development .env.localdev .dev.vars; do
+    [ -f "$src/$f" ] && cp "$src/$f" "$dst/$f" 2>/dev/null && info "  synced $f"
+  done
+  return 0
+}
+
+cmd_new() {
+  local repo_arg branch base repo
+  # Flexible args. Disambiguated by whether arg 1 names a real repo:
+  #   wt new <branch>                 (cwd inside a repo)
+  #   wt new <branch> <base>          (cwd inside a repo; arg1 not a repo)
+  #   wt new <repo> <branch> [base]   (arg1 resolves to a repo)
+  if [ $# -ge 2 ] && resolve_repo "$1" >/dev/null 2>&1; then
+    repo_arg="$1" branch="$2" base="${3:-}"
+    repo="$(resolve_repo "$repo_arg")"
+  elif [ $# -ge 1 ]; then
+    branch="$1" base="${2:-}"
+    repo="$(git rev-parse --show-toplevel 2>/dev/null)" \
+      || die "not inside a git repo, and '$1' is not a known repo. use: wt new <repo> <branch>"
+    info "inferred repo from cwd: $(basename "$repo")"
+  else
+    die "usage: wt new [<repo>] <branch> [base]"
+  fi
+  [ -n "$branch" ] || die "usage: wt new [<repo>] <branch> [base]"
+  local rname; rname="$(basename "$repo")"
+  local dst="$WT_HOME/$rname/$branch"
+  [ -e "$dst" ] && die "worktree already exists: $dst  (use: wt go $rname/$branch)"
+  mkdir -p "$(dirname "$dst")"
+
+  if git -C "$repo" rev-parse --verify "$branch" >/dev/null 2>&1; then
+    info "checking out existing branch '$branch' -> $dst"
+    git -C "$repo" worktree add "$dst" "$branch" >/dev/null
+  else
+    local from="${base:-HEAD}"
+    info "creating branch '$branch' from '$from' -> $dst"
+    git -C "$repo" worktree add -b "$branch" "$dst" "$from" >/dev/null
+  fi
+  _sync_env "$repo" "$dst"
+  printf '%s✓ worktree ready:%s %s\n' "$c_green" "$c_reset" "$dst"
+  _open "$dst"
+}
+
+cmd_fan() {
+  local repo_arg base n i repo
+  # All forms (n is the trailing number; base defaults to repo's current branch):
+  #   wt fan <n>                  (cwd inside a repo, base = current branch)
+  #   wt fan <base> <n>           (cwd inside a repo)
+  #   wt fan <repo> <base> <n>
+  local last="${!#:-}"
+  [[ "$last" =~ ^[0-9]+$ ]] || die "usage: wt fan [<repo>] [<base>] <n>   (n must be the last arg)"
+  n="$last"
+  case $# in
+    1)  # just <n>
+      repo="$(git rev-parse --show-toplevel 2>/dev/null)" \
+        || die "not inside a git repo. use: wt fan <repo> <base> <n>"
+      repo_arg="$(basename "$repo")"
+      base="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null)"
+      info "fan: repo $repo_arg, base $base (current branch), n=$n" ;;
+    2)  # <base> <n>  (cwd repo)
+      base="$1"
+      repo="$(git rev-parse --show-toplevel 2>/dev/null)" \
+        || die "not inside a git repo. use: wt fan <repo> <base> <n>"
+      repo_arg="$(basename "$repo")" ;;
+    3)  # <repo> <base> <n>
+      repo_arg="$1"; base="$2" ;;
+    *)  die "usage: wt fan [<repo>] [<base>] <n>" ;;
+  esac
+  resolve_repo "$repo_arg" >/dev/null || die "repo not found: $repo_arg"
+  info "fanning out $n worktrees from '$base'..."
+  for i in $(seq 1 "$n"); do
+    cmd_new "$repo_arg" "$base/wt-$i" "$base" || true
+  done
+}
+
+# Resolve a "<repo>/<branch>" or bare "<branch>" to a worktree path.
+_find_worktree() {
+  local q="$1"
+  if [ -d "$WT_HOME/$q" ]; then echo "$WT_HOME/$q"; return 0; fi
+  # bare branch: search all repos under WT_HOME
+  local hits; hits="$(find "$WT_HOME" -mindepth 2 -maxdepth 2 -type d -name "$(basename "$q")" 2>/dev/null)"
+  local count; count="$(printf '%s\n' "$hits" | grep -c . || true)"
+  if [ "$count" = "1" ]; then echo "$hits"; return 0; fi
+  if [ "$count" = "0" ]; then return 1; fi
+  printf '%sambiguous, matches:%s\n' "$c_yellow" "$c_reset" >&2
+  printf '%s\n' "$hits" >&2
+  return 2
+}
+
+# Build the opencode invocation for a worktree dir (resume session if one exists).
+_oc_cmd() {
+  local dir="$1" sess sid
+  sess="$(session_for_dir "$dir")"; sid="${sess%%$'\t'*}"
+  if [ -n "$sid" ]; then printf 'opencode --session %q' "$sid"
+  else printf 'opencode'; fi
+}
+
+# Open a worktree. Inside tmux: new named window. Otherwise: exec in place.
+# WT_NO_WINDOW=1 forces in-place (used by tests / when you want same pane).
+_open() {
+  local dir="$1" winname="${2:-}"
+  command -v opencode >/dev/null 2>&1 || { info "opencode not found; cd $dir"; return 0; }
+  [ -z "$winname" ] && winname="$(basename "$dir")"
+
+  if [ -n "${TMUX:-}" ] && [ -z "${WT_NO_WINDOW:-}" ]; then
+    # Native tmux: spawn a new window named after the branch, running opencode.
+    # The window stays open on a shell after opencode exits (exec $SHELL).
+    local occmd; occmd="$(_oc_cmd "$dir")"
+    tmux new-window -n "$winname" -c "$dir" "$occmd; exec ${SHELL:-/bin/zsh}"
+    printf '%s✓ opened tmux window%s %s%s%s  (%s)\n' \
+      "$c_green" "$c_reset" "$c_mag" "$winname" "$c_reset" "$dir"
+    return 0
+  fi
+
+  # Not in tmux (or forced in-place): replace current process.
+  local sess sid; sess="$(session_for_dir "$dir")"; sid="${sess%%$'\t'*}"
+  cd "$dir"
+  if [ -n "$sid" ]; then info "resuming session $sid"; exec opencode --session "$sid"
+  else exec opencode; fi
+}
+
+cmd_go() {
+  local q="${1:-}"
+  if [ -z "$q" ]; then cmd_ls; echo; info "usage: wt go <branch> | <repo/branch>"; return 0; fi
+  local dir; dir="$(_find_worktree "$q")" || die "no worktree matching: $q"
+  [ -d "$dir" ] || die "worktree path missing: $dir"
+  _open "$dir"
+}
+
+cmd_rm() {
+  local q="${1:-}"; [ -n "$q" ] || die "usage: wt rm <repo/branch>"
+  local dir; dir="$(_find_worktree "$q")" || die "no worktree matching: $q"
+  # find the owning repo from git
+  local repo; repo="$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null | sed 's|/\.git$||')"
+  [ -z "$repo" ] && repo="$(git -C "$dir" worktree list --porcelain 2>/dev/null | awk 'NR==1{print substr($0,10)}')"
+  local br; br="$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')"
+  info "removing worktree: $dir"
+  git -C "$dir" worktree remove --force "$dir" 2>/dev/null \
+    || git -C "$repo" worktree remove --force "$dir"
+  printf '%s✓ removed%s %s\n' "$c_green" "$c_reset" "$dir"
+  if [ -n "$br" ] && [ "$br" != "HEAD" ]; then
+    info "branch '$br' kept. delete it with:  git -C $repo branch -D $br"
+  fi
+}
+
+cmd_clean() {
+  info "pruning stale worktrees across all repos under $WORK_ROOT..."
+  while IFS= read -r repo; do
+    [ -z "$repo" ] && continue
+    git -C "$repo" worktree prune -v 2>&1 | sed "s|^|$(basename "$repo"): |" || true
+  done < <(list_repos)
+  printf '%s✓ done%s\n' "$c_green" "$c_reset"
+}
+
+cmd_help() {
+  cat <<EOF
+${c_b}wt${c_reset} — durable cross-repo git worktree manager
+
+  ${c_cyan}wt ls${c_reset}                          every worktree across every repo (the dashboard)
+  ${c_cyan}wt new${c_reset} [<repo>] <branch> [base]  create worktree+branch, open opencode
+  ${c_cyan}wt fan${c_reset} [<repo>] <base> <n>      N parallel worktrees off one base (base/wt-1..n)
+  ${c_cyan}wt go${c_reset}  <branch|repo/branch>     open that worktree's opencode session
+  ${c_cyan}wt rm${c_reset}  <branch|repo/branch>     remove a worktree (keeps the branch)
+  ${c_cyan}wt clean${c_reset}                        prune stale/deleted worktrees everywhere
+
+  worktrees live in   ${c_dim}$WT_HOME/<repo>/<branch>${c_reset}
+  repos scanned under ${c_dim}$WORK_ROOT${c_reset}
+
+  ${c_b}tmux-native:${c_reset} inside tmux, new/go open a new ${c_b}named window${c_reset} (named after the
+  branch) running opencode — your current window is untouched. Outside tmux they
+  open in place. From inside a repo you can drop the repo arg: ${c_b}wt new my-branch${c_reset}.
+
+  After a reboot:  ${c_b}wt ls${c_reset}  to see everything, then  ${c_b}wt go <branch>${c_reset}  to jump back in.
+EOF
+}
+
+main() {
+  local cmd="${1:-ls}"; shift || true
+  case "$cmd" in
+    ls|list|status) cmd_ls "$@" ;;
+    new|create|add) cmd_new "$@" ;;
+    fan|fanout)     cmd_fan "$@" ;;
+    go|cd|enter|resume) cmd_go "$@" ;;
+    rm|remove|del)  cmd_rm "$@" ;;
+    clean|prune)    cmd_clean "$@" ;;
+    help|-h|--help) cmd_help ;;
+    *) die "unknown command: $cmd  (try: wt help)" ;;
+  esac
+}
+
+main "$@"

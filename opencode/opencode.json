@@ -1,0 +1,76 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "anthropic/claude-opus-4-8",
+  "plugin": [
+    "opencode-claude-auth@latest",
+    "./plugins/worktree.ts"
+  ],
+  "permission": {
+    "*": "allow",
+    "bash": {
+      "*": "allow",
+      "git push": "ask",
+      "git push *": "ask"
+    },
+    "telegram_send_message": "ask",
+    "telegram_send_message*": "ask",
+    "telegram_send_*": "ask",
+    "telegram_forward_*": "ask",
+    "telegram_reply_*": "ask",
+    "mcp_Telegram_send_*": "ask",
+    "mcp_Telegram_forward_*": "ask",
+    "mcp_Telegram_reply_*": "ask"
+  },
+  "tools": {
+    "worktree_create": false,
+    "worktree_delete": false
+  },
+  "lsp": true,
+  "provider": {
+    "anthropic": {
+      "options": {
+        "timeout": 600000,
+        "setCacheKey": true
+      }
+    }
+  },
+  "compaction": {
+    "auto": true,
+    "prune": false,
+    "reserved": 16000
+  },
+  "mcp": {
+    "lightpanda": {
+      "type": "local",
+      "command": [
+        "sh",
+        "-c",
+        "exec $HOME/.local/bin/lightpanda mcp"
+      ],
+      "enabled": true
+    },
+    "telegram": {
+      "type": "local",
+      "command": [
+        "sh",
+        "-c",
+        ". $HOME/.zsh_secrets; exec uv run --directory $HOME/work/telegram-mcp main.py"
+      ],
+      "enabled": true
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": [
+        "sh",
+        "-c",
+        "export NVM_DIR=$HOME/.nvm; . $NVM_DIR/nvm.sh >/dev/null 2>&1; exec npx -y chrome-devtools-mcp@latest --headless --isolated --executablePath /usr/bin/google-chrome --screenshotFormat jpeg --screenshotMaxWidth 1280 --no-usage-statistics --no-performance-crux"
+      ],
+      "enabled": true
+    }
+  },
+  "agent": {
+    "build": {
+      "enable1mContext": true
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "theme": "cornell.sh",
+  "enableSkillCommands": true,
+  "warnings": {
+    "anthropicExtraUsage": false
+  },
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-opus-4-8",
+  "defaultThinkingLevel": "medium",
+  "enabledModels": [
+    "claude-opus-4-8",
+    "claude-sonnet-4-6",
+    "claude-haiku-4-5"
+  ],
+  "compaction": {
+    "enabled": true,
+    "keepRecentTokens": 24000
+  },
+  "packages": [
+    "npm:pi-claude-oauth-adapter",
+    "npm:pi-web-access"
+  ]
+}

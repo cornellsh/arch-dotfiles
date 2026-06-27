@@ -1,0 +1,16 @@
+#!/bin/sh
+# Toggle webcam on/off via F10 (camera key).
+
+CURRENT=$(sudo -n /usr/local/bin/webcam-toggle status 2>/dev/null)
+
+if [ "$CURRENT" = "1" ]; then
+    systemctl --user stop webcam.service 2>/dev/null
+    sudo -n /usr/local/bin/webcam-toggle off 2>/dev/null
+    notify-send -a "Webcam" -i camera-disabled-symbolic -t 1500 \
+        "Webcam disabled"
+else
+    sudo -n /usr/local/bin/webcam-toggle on 2>/dev/null
+    systemctl --user start webcam.service 2>/dev/null
+    notify-send -a "Webcam" -i camera-web-symbolic -t 1500 \
+        "Webcam enabled"
+fi

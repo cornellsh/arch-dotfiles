@@ -1,0 +1,98 @@
+{
+  "$schema": "https://raw.githubusercontent.com/earendil-works/pi/main/packages/coding-agent/src/modes/interactive/theme/theme-schema.json",
+  "name": "cornell.sh",
+  "vars": {
+    "bg": "#0c0c0c",
+    "bgAlt": "#131313",
+    "bgPanel": "#181818",
+    "bgMenu": "#262626",
+    "border": "#3a3a3a",
+    "borderSubtle": "#1f1f1f",
+
+    "fg": "#e8e8e8",
+    "fgMuted": "#a2a2a2",
+    "fgSubtle": "#767676",
+    "fgFaint": "#4d4d4d",
+
+    "violet": "#bd93f9",
+    "violetSoft": "#c9b0f2",
+    "violetGray": "#8a82a0",
+    "pink": "#ff6e99",
+    "cyan": "#7fd6ef",
+    "blue": "#88a8f0",
+    "amber": "#f0c674",
+    "yellow": "#e6d98a",
+    "orange": "#ff9e64",
+    "green": "#8fd97f",
+    "red": "#ff7b8a",
+
+    "diffAddedFg": "#8fd97f",
+    "diffRemovedFg": "#ff7b8a",
+    "diffAddedBg": "#13220f",
+    "diffRemovedBg": "#2a1418"
+  },
+  "colors": {
+    "accent": "violet",
+    "border": "border",
+    "borderAccent": "violet",
+    "borderMuted": "borderSubtle",
+    "success": "green",
+    "error": "red",
+    "warning": "amber",
+    "muted": "fgMuted",
+    "dim": "fgSubtle",
+    "text": "fg",
+    "thinkingText": "fgMuted",
+
+    "selectedBg": "bgMenu",
+    "userMessageBg": "bgPanel",
+    "userMessageText": "fg",
+    "customMessageBg": "bgMenu",
+    "customMessageText": "fg",
+    "customMessageLabel": "violet",
+    "toolPendingBg": "bgAlt",
+    "toolSuccessBg": "diffAddedBg",
+    "toolErrorBg": "diffRemovedBg",
+    "toolTitle": "violet",
+    "toolOutput": "fgMuted",
+
+    "mdHeading": "amber",
+    "mdLink": "blue",
+    "mdLinkUrl": "fgSubtle",
+    "mdCode": "violetSoft",
+    "mdCodeBlock": "fg",
+    "mdCodeBlockBorder": "border",
+    "mdQuote": "fgMuted",
+    "mdQuoteBorder": "violetGray",
+    "mdHr": "border",
+    "mdListBullet": "violet",
+
+    "toolDiffAdded": "diffAddedFg",
+    "toolDiffRemoved": "diffRemovedFg",
+    "toolDiffContext": "fgMuted",
+
+    "syntaxComment": "fgSubtle",
+    "syntaxKeyword": "pink",
+    "syntaxFunction": "violet",
+    "syntaxVariable": "fg",
+    "syntaxString": "yellow",
+    "syntaxNumber": "orange",
+    "syntaxType": "cyan",
+    "syntaxOperator": "pink",
+    "syntaxPunctuation": "fgMuted",
+
+    "thinkingOff": "fgFaint",
+    "thinkingMinimal": "fgSubtle",
+    "thinkingLow": "fgSubtle",
+    "thinkingMedium": "fgMuted",
+    "thinkingHigh": "violet",
+    "thinkingXhigh": "pink",
+
+    "bashMode": "orange"
+  },
+  "export": {
+    "pageBg": "#0c0c0c",
+    "cardBg": "#181818",
+    "infoBg": "#262626"
+  }
+}

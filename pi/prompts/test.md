@@ -1,0 +1,1 @@
+Write tests for the code I reference. Detect the existing test framework and conventions from the repo first. Cover happy paths, edge cases, and error handling. Then run the tests and fix anything that fails.

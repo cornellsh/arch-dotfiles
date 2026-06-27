@@ -1,0 +1,137 @@
+{
+    "vite.browserType": "system",
+    "files.autoSave": "onFocusChange",
+    "editor.formatOnSave": true,
+    "git.enableSmartCommit": true,
+    "git.autofetch": true,
+    "totalTypeScript.hideAllTips": false,
+    "totalTypeScript.hideBasicTips": false,
+    "files.associations": {
+        ".env*": "dotenv",
+        "chrono": "cpp",
+        "algorithm": "cpp",
+        "forward_list": "cpp",
+        "list": "cpp",
+        "xhash": "cpp",
+        "xloctime": "cpp",
+        "memory": "cpp",
+        "vector": "cpp",
+        "*.mdx": "markdown",
+        "cstddef": "cpp",
+        "optional": "cpp",
+        "*.out": "log"
+    },
+    "editor.tokenColorCustomizations": {
+        "[*Light*]": {
+            "textMateRules": [
+                {
+                    "scope": "ref.matchtext",
+                    "settings": {
+                        "foreground": "#000"
+                    }
+                }
+            ]
+        },
+        "[*Dark*]": {
+            "textMateRules": [
+                {
+                    "scope": "ref.matchtext",
+                    "settings": {
+                        "foreground": "#fff"
+                    }
+                }
+            ]
+        },
+        "textMateRules": []
+    },
+    "workbench.layoutControl.enabled": false,
+    "window.menuBarVisibility": "toggle",
+    "amp.url": "https://ampcode.com/",
+    "liveServer.settings.donotShowInfoMsg": true,
+    "amp.commands.allowlist": [
+        "npm",
+        "rm"
+    ],
+    "superdesign.anthropicApiKey": "",
+    "superdesign.aiModelProvider": "anthropic",
+    "superdesign.openrouterApiKey": "",
+    "editor.cursorBlinking": "expand",
+    "editor.wordWrap": "on",
+    "workbench.startupEditor": "none",
+    "terminal.integrated.fontSize": 12,
+    "workbench.editor.empty.hint": "hidden",
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "dotenv.enableAutocloaking": false,
+    "roo-cline.allowedCommands": [
+        "git log",
+        "git diff",
+        "git show",
+        "npm test",
+        "npm install",
+        "tsc"
+    ],
+    "roo-cline.deniedCommands": [],
+    "explorer.confirmDelete": false,
+    "editor.guides.bracketPairs": "active",
+    "editor.linkedEditing": true,
+    "git.openRepositoryInParentFolders": "always",
+    "explorer.confirmDragAndDrop": false,
+    "kilo-code.allowedCommands": [
+        "npm test",
+        "npm install",
+        "tsc",
+        "git log",
+        "git diff",
+        "git show",
+        "poetry run pre-commit run --all-files",
+        "poetry",
+        "poetry run",
+        "poetry run pre-commit",
+        "./scripts/test-lib.sh"
+    ],
+    "kilo-code.deniedCommands": [],
+    // "workbench.colorCustomizations": {
+    //     "editor.findMatchBackground": "#ffffff65"
+    // }
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "C_Cpp.autocomplete": "default",
+    "C_Cpp.errorSquiggles": "enabled",
+    "[markdown]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "editor.fontFamily": "Fira Code, 'Droid Sans Mono', 'monospace', monospace",
+    "files.exclude": {
+        "**.mypy_cache": true,
+        "**/__pycache__": true,
+        "**/.ruff-cache": true,
+        "**/.venv": true
+    },
+    "python.analysis.typeCheckingMode": "basic",
+    "chatgpt.runCodexInWindowsSubsystemForLinux": true,
+    "git.confirmSync": false,
+    "clangd.path": "/home/user/.config/Code/User/globalStorage/llvm-vs-code-extensions.vscode-clangd/install/21.1.0/clangd_21.1.0/bin/clangd",
+    "editor.formatOnPaste": true,
+    "explorer.fileNesting.patterns": {
+        "*.ts": "${capture}.js",
+        "*.js": "${capture}.js.map, ${capture}.min.js, ${capture}.d.ts",
+        "*.jsx": "${capture}.js",
+        "*.tsx": "${capture}.ts",
+        "tsconfig.json": "tsconfig.*.json",
+        "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lockb, bun.lock",
+        "*.sqlite": "${capture}.${extname}-*",
+        "*.db": "${capture}.${extname}-*",
+        "*.sqlite3": "${capture}.${extname}-*",
+        "*.db3": "${capture}.${extname}-*",
+        "*.sdb": "${capture}.${extname}-*",
+        "*.s3db": "${capture}.${extname}-*"
+    },
+    "vsicons.dontShowNewVersionMessage": true,
+    "workbench.editorAssociations": {
+        "*.md": "vscode.markdown.preview.editor"
+    },
+    "workbench.iconTheme": "helium-icon-theme",
+    "terminal.integrated.commandsToSkipShell": [
+        "kilo-code.new.agentManagerOpen",
+        "kilo-code.new.agentManager.showTerminal"
+    ]
+}

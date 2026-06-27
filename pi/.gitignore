@@ -1,0 +1,7 @@
+# Never track pi runtime state or secrets
+auth.json
+sessions/
+npm/
+git/
+mcp-cache.json
+*.log
